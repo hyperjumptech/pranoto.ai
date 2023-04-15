@@ -1,6 +1,7 @@
 import { type KeyboardEventHandler, useState } from "react";
 import Head from "next/head";
 import {
+  Alert,
   Button,
   Card,
   Col,
@@ -9,12 +10,16 @@ import {
   Layout,
   Modal,
   Row,
+  Skeleton,
   Space,
   Tag,
   Upload,
   message,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
+import useSWR from "swr";
+import { formatDistanceToNow, fromUnixTime } from "date-fns";
+import { fetcher } from "@/pkg/fetcher";
 
 const { Meta } = Card;
 const { Content, Header, Footer } = Layout;
@@ -126,57 +131,38 @@ type VideoStatus = "done" | "transcribing" | "converting" | "queueing";
 
 type Video = {
   id: string;
-  createdAt: string;
+  createdAt: number;
   status: VideoStatus;
   title: string;
   videoURL: string;
 };
 
 function VideoList() {
-  const videos: Video[] = [
-    {
-      id: "1",
-      createdAt: "Apr 1, 2023",
-      status: "done",
-      title: "Oppenheimer",
-      videoURL: "/oppenheimer.mp4",
-    },
-    {
-      id: "2",
-      createdAt: "Apr 2, 2023",
-      status: "transcribing",
-      title: "Dunkirk",
-      videoURL: "/dunkirk.mp4",
-    },
-    {
-      id: "3",
-      createdAt: "Apr 3, 2023",
-      status: "converting",
-      title: "Oppenheimer",
-      videoURL: "/oppenheimer.mp4",
-    },
-    {
-      id: "4",
-      createdAt: "Apr 4, 2023",
-      status: "queueing",
-      title: "Dunkirk",
-      videoURL: "/dunkirk.mp4",
-    },
-    {
-      id: "5",
-      createdAt: "Apr 4, 2023",
-      status: "queueing",
-      title: "Oppenheimer",
-      videoURL: "/oppenheimer.mp4",
-    },
-    {
-      id: "6",
-      createdAt: "Apr 4, 2023",
-      status: "queueing",
-      title: "Oppenheimer",
-      videoURL: "/oppenheimer.mp4",
-    },
-  ];
+  const { data, error, isLoading } = useSWR("/v1/videos?q=well", fetcher);
+
+  if (error) {
+    return (
+      <Alert
+        message="Error!"
+        description=" Failed to get video data. Please try again."
+        type="error"
+      />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Row gutter={[24, 24]}>
+        <Col span={8}>
+          <Card>
+            <Skeleton loading active />
+          </Card>
+        </Col>
+      </Row>
+    );
+  }
+
+  const videos: Video[] = data?.data;
 
   return (
     <Row gutter={[24, 24]}>
@@ -198,7 +184,9 @@ function VideoList() {
               title={title}
               description={
                 <Space>
-                  {createdAt}
+                  {formatDistanceToNow(fromUnixTime(createdAt), {
+                    addSuffix: true,
+                  })}
                   <Tag color={getStatusColor(status)}>{capitalize(status)}</Tag>
                 </Space>
               }
