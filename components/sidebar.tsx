@@ -2,6 +2,7 @@ import { classNames } from "./layout";
 import { PlayCircleIcon } from "@heroicons/react/24/outline";
 import { PlusIcon } from "@heroicons/react/20/solid";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 const navigation = [
   { name: "Create", href: "/create", icon: PlusIcon },
@@ -9,6 +10,8 @@ const navigation = [
 ];
 
 export default function Sidebar() {
+  const router = useRouter();
+
   return (
     <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4 border-r border-gray-200">
       <div className="flex h-16 shrink-0 items-center">
@@ -28,15 +31,15 @@ export default function Sidebar() {
                   <Link
                     href={item.href}
                     className={classNames(
-                      item.current
-                        ? "bg-gray-50 text-indigo-600"
+                      router.pathname === item.href
+                      ? "bg-gray-50 text-indigo-600"
                         : "text-gray-700 hover:text-indigo-600 hover:bg-gray-50",
                       "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
                     )}
                   >
                     <item.icon
                       className={classNames(
-                        item.current
+                        router.pathname === item.href
                           ? "text-indigo-600"
                           : "text-gray-400 group-hover:text-indigo-600",
                         "h-6 w-6 shrink-0"
