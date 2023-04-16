@@ -1,4 +1,4 @@
-import { edit } from "@/domain/video/handler";
+import { edit } from "@/services/video/handler";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {

@@ -1,7 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { type ValidationError, object, string } from "yup";
+import * as Minio from "minio";
+import mime from "mime-types";
 import type { Video } from "./entity";
 import { getVideos, insert, update } from "./repository";
+import { getUnixTimeStamp } from "@/pkg/time";
 
 type BaseResponse = {
   message: string;
@@ -38,6 +41,7 @@ export async function index(
 export async function create({ body }: NextApiRequest, res: NextApiResponse) {
   try {
     const videoSchema = object({
+      type: string().required().label("Type"),
       title: string().required().label("Title"),
     }).noUnknown();
 
@@ -50,9 +54,17 @@ export async function create({ body }: NextApiRequest, res: NextApiResponse) {
   }
 
   try {
-    await insert({ title: body.title });
+    const { type, title } = body;
+    const video = await insert({ title, type });
+    // return presigned url
+    const presignedURL = await getPresignedURL(
+      createObjectName({ id: video.id, videoType: video.type }),
+      type
+    );
 
-    return res.status(201).json({ message: "Created" });
+    return res
+      .status(201)
+      .json({ message: "Created", data: { ...video, presignedURL } });
   } catch (error: any) {
     console.error(error);
     return res.status(500).json({
@@ -74,7 +86,7 @@ export async function edit(
         .label("Status"),
       text: string().label("Text"),
       title: string().required().label("Title"),
-      videoURL: string()
+      url: string()
         .required()
         // .url()
         .label("Video"),
@@ -90,6 +102,13 @@ export async function edit(
 
   try {
     await update(query?.id as string, body);
+
+    // publish an event when video url change
+    // subscriber download the video and convert to audio and download to object storage (status: converting)
+    // publish an event when audio ready
+    // subscriber download the audio, transcribe the audio, and insert the output to database (status: transcribing)
+    // publish an event when trancription ready
+    // subscriber update status to done (status: done)
 
     return res.status(200).json({ message: "Updated" });
   } catch (error: any) {
@@ -113,4 +132,42 @@ function parseSearchQueryString(
   }
 
   return queryString.join(". ");
+}
+
+type ObjectNameParams = {
+  id: string;
+  videoType: string;
+};
+
+function createObjectName({ id, videoType }: ObjectNameParams): string {
+  const extension = mime.extension(videoType);
+  const timeNow = getUnixTimeStamp();
+
+  return `videos/${id}_${timeNow}.${extension}`;
+}
+
+async function getPresignedURL(
+  objectName: string,
+  contentType: string
+): Promise<string> {
+  const minioClient = new Minio.Client({
+    endPoint: "localhost",
+    port: 9000,
+    useSSL: false,
+    accessKey: "pranoto_access_key",
+    secretKey: "pranoto_secret_key",
+  });
+
+  const BUCKET_NAME = "pranoto-bucket";
+  const second = 1;
+  const expiry = 30 * second;
+  const presignedURL = await minioClient.presignedUrl(
+    "PUT",
+    BUCKET_NAME,
+    objectName,
+    expiry,
+    { "x-amz-acl": "public-read", "content-type": contentType }
+  );
+
+  return presignedURL;
 }

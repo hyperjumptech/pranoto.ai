@@ -19,13 +19,17 @@ import {
 import { UploadOutlined } from "@ant-design/icons";
 import useSWR from "swr";
 import { formatDistanceToNow, fromUnixTime } from "date-fns";
-import { fetcher } from "@/pkg/fetcher";
+import { axiosInstance, fetcher } from "@/pkg/fetcher";
+import { object, string } from "yup";
+import axios from "axios";
+import { RcFile } from "antd/es/upload";
 
 const { Meta } = Card;
 const { Content, Header, Footer } = Layout;
 
 export default function Home() {
   const [search, setSearch] = useState<string>("");
+  const { data, error, isLoading, mutate } = useSWR("/v1/videos", fetcher);
   const handleSearch: KeyboardEventHandler<HTMLInputElement> = (e) => {
     e.preventDefault();
 
@@ -63,14 +67,19 @@ export default function Home() {
           </Row>
         </Header>
         <Content style={{ padding: "1.5rem" }}>
-          <VideoList />
+          <VideoList error={error} isLoading={isLoading} videos={data?.data} />
           <Modal
             title="Upload a new video"
             open={isModalOpen}
             onCancel={() => setIsModalOpen(false)}
             footer={false}
           >
-            <AddNewVideoForm />
+            <AddVideoForm
+              onSuccess={() => {
+                mutate();
+                setIsModalOpen(false);
+              }}
+            />
           </Modal>
         </Content>
         <Footer style={{ textAlign: "center" }}>
@@ -88,38 +97,142 @@ export default function Home() {
   );
 }
 
-function AddNewVideoForm() {
-  const onFinish = (values: any) => {
-    console.log("Success:", values);
+type AddVideoFormProps = {
+  onSuccess: () => void;
+};
+
+function AddVideoForm({ onSuccess }: AddVideoFormProps) {
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
+  const [videoFile, setVideoFile] = useState<RcFile | null>(null);
+  const [isSubmitting, setSubmitting] = useState<boolean>(false);
+  const onFinish = async (values: Pick<Video, "title">) => {
+    // prevent double submit
+    if (isSubmitting) {
+      return;
+    }
+    setSubmitting(true);
+
+    // validate input
+    try {
+      if (!videoFile) {
+        setValidationErrors({ video: "Video is required" });
+        return;
+      }
+
+      const videoSchema = object({
+        title: string().required().label("Title"),
+      }).noUnknown();
+
+      await videoSchema.validate(values, { abortEarly: false });
+    } catch (error: any) {
+      let errors: Record<string, string> = {};
+
+      error.inner.forEach((error: any) => {
+        errors[error.path] = error.message;
+      });
+
+      setValidationErrors(errors);
+      return;
+    } finally {
+      setSubmitting(false);
+    }
+
+    // create video
+    try {
+      const { data } = await axiosInstance.post("/v1/videos", {
+        type: videoFile.type,
+        title: values.title,
+      });
+
+      // upload video to object storage
+      const { id, presignedURL } = data.data;
+      await axios.put(presignedURL, videoFile);
+
+      // update the video url
+      const video = {
+        status: "queueing",
+        text: "",
+        title: values.title,
+        url: presignedURL.split("?")[0],
+      };
+      await axiosInstance.put(`/v1/videos/${id}`, video);
+
+      onSuccess();
+
+      message.success("Video has been uploaded.");
+    } catch (error: any) {
+      console.error(error);
+
+      if (error.response) {
+        message.error(error.response.data.error);
+        return;
+      }
+
+      message.error("Failed to create video. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Form layout="vertical" onFinish={onFinish}>
-      <Form.Item label="Video">
+      <Form.Item
+        label="Video"
+        validateStatus={validationErrors?.video ? "error" : ""}
+        help={validationErrors?.video}
+      >
         <Upload
-          {...{
-            accept: "video/*",
-            name: "file",
-            onChange(info) {
-              if (info.file.status !== "uploading") {
-                console.log(info.file, info.fileList);
-              }
-              if (info.file.status === "done") {
-                message.success(`${info.file.name} file uploaded successfully`);
-              } else if (info.file.status === "error") {
-                message.error(`${info.file.name} file upload failed.`);
-              }
-            },
+          accept="video/*"
+          name="videoFile"
+          multiple={false}
+          beforeUpload={(file) => {
+            setVideoFile(file);
+            setValidationErrors((ve) => {
+              delete ve["video"];
+              return ve;
+            });
+            return false;
           }}
+          onRemove={() => {
+            setVideoFile(null);
+          }}
+          showUploadList={false}
         >
           <Button icon={<UploadOutlined />}>Click to Upload</Button>
+          {videoFile && (
+            <div
+              style={{
+                overflow: "hidden",
+                paddingTop: "0.5rem",
+              }}
+            >
+              <video controls style={{ width: "100%" }}>
+                <source
+                  src={URL.createObjectURL(videoFile)}
+                  type={videoFile.type}
+                />
+              </video>
+            </div>
+          )}
         </Upload>
       </Form.Item>
-      <Form.Item label="Title" name="title">
-        <Input />
+      <Form.Item
+        label="Title"
+        name="title"
+        validateStatus={validationErrors?.title ? "error" : ""}
+        help={validationErrors?.title}
+      >
+        <Input status={validationErrors?.title ? "error" : ""} />
       </Form.Item>
       <Form.Item>
-        <Button type="primary" htmlType="submit">
+        <Button
+          type="primary"
+          htmlType="submit"
+          disabled={isSubmitting}
+          loading={isSubmitting}
+        >
           Add
         </Button>
       </Form.Item>
@@ -134,12 +247,17 @@ type Video = {
   createdAt: number;
   status: VideoStatus;
   title: string;
-  videoURL: string;
+  url: string;
+  type: string;
 };
 
-function VideoList() {
-  const { data, error, isLoading } = useSWR("/v1/videos?q=well", fetcher);
+type VideoListProps = {
+  error: string;
+  isLoading: boolean;
+  videos: Video[];
+};
 
+function VideoList({ error, isLoading, videos }: VideoListProps) {
   if (error) {
     return (
       <Alert
@@ -162,24 +280,14 @@ function VideoList() {
     );
   }
 
-  const videos: Video[] = data?.data;
-
   return (
     <Row gutter={[24, 24]}>
-      {videos.map(({ createdAt, id, status, title, videoURL }) => (
+      {videos.map(({ createdAt, id, status, title, type, url }) => (
         <Col key={id} span={8}>
           <Card>
-            <div
-              style={{
-                overflow: "hidden",
-                maxWidth: "100%",
-                paddingBottom: "0.5rem",
-              }}
-            >
-              <video controls style={{ width: "100%" }}>
-                <source src={videoURL} type="video/mp4" />
-              </video>
-            </div>
+            <video controls style={{ width: "100%", paddingBottom: "0.5rem" }}>
+              <source src={url} type={type} />
+            </video>
             <Meta
               title={title}
               description={

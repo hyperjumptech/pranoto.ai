@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import type { Video } from "./entity";
+import { getUnixTimeStamp } from "@/pkg/time";
 
 type GetVideoParams = {
   search?: string;
@@ -12,7 +13,8 @@ let VIDEOS: Video[] = [
     updatedAt: 1680356615,
     status: "done",
     title: "Oppenheimer",
-    videoURL: "/oppenheimer.mp4",
+    url: "/oppenheimer.mp4",
+    type: "video/mp4",
     text: "",
   },
   {
@@ -21,7 +23,8 @@ let VIDEOS: Video[] = [
     updatedAt: 1680356615,
     status: "transcribing",
     title: "Dunkirk",
-    videoURL: "/dunkirk.mp4",
+    url: "/dunkirk.mp4",
+    type: "video/mp4",
     text: "",
   },
   {
@@ -30,7 +33,8 @@ let VIDEOS: Video[] = [
     updatedAt: 1680356615,
     status: "converting",
     title: "Oppenheimer",
-    videoURL: "/oppenheimer.mp4",
+    url: "/oppenheimer.mp4",
+    type: "video/mp4",
     text: "",
   },
   {
@@ -39,25 +43,8 @@ let VIDEOS: Video[] = [
     updatedAt: 1680356615,
     status: "queueing",
     title: "Dunkirk",
-    videoURL: "/dunkirk.mp4",
-    text: "",
-  },
-  {
-    id: "5",
-    createdAt: 1680615815,
-    updatedAt: 1680356615,
-    status: "queueing",
-    title: "Oppenheimer",
-    videoURL: "/oppenheimer.mp4",
-    text: "",
-  },
-  {
-    id: "6",
-    createdAt: 1680615815,
-    updatedAt: 1680356615,
-    status: "queueing",
-    title: "Oppenheimer",
-    videoURL: "/oppenheimer.mp4",
+    url: "/dunkirk.mp4",
+    type: "video/mp4",
     text: "",
   },
 ];
@@ -68,35 +55,37 @@ export async function getVideos({
   return VIDEOS;
 }
 
-export async function insert({ title }: Pick<Video, "title">) {
+export async function insert({
+  title,
+  type,
+}: Pick<Video, "title" | "type">): Promise<Video> {
+  const timeNow = getUnixTimeStamp();
   const video: Video = {
     id: nanoid(),
     status: "queueing",
     text: "",
     title,
-    videoURL: "",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    url: "",
+    type,
+    createdAt: timeNow,
+    updatedAt: timeNow,
   };
 
   VIDEOS.push(video);
+
+  return video;
 }
 
 export async function update(
   id: string,
-  {
-    status,
-    text,
-    title,
-    videoURL,
-  }: Pick<Video, "status" | "title" | "text" | "videoURL">
+  { status, text, title, url }: Pick<Video, "status" | "title" | "text" | "url">
 ) {
   const video = {
-    updatedAt: Date.now(),
+    updatedAt: getUnixTimeStamp(),
     status,
     text,
     title,
-    videoURL,
+    url,
   };
 
   const selectedVideo = VIDEOS.find((video) => video.id === id);

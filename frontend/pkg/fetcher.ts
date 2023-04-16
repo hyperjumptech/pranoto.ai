@@ -3,7 +3,7 @@ import axios from "axios";
 const second = 1000;
 const byte = 1000;
 const MB = 1000 * byte;
-const axiosInstance = axios.create({
+export const axiosInstance = axios.create({
   baseURL: "/api",
   maxContentLength: 1 * MB,
   maxRedirects: 5,
