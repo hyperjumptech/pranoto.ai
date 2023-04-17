@@ -18,6 +18,7 @@ cd .dev && docker compose up -d && cd ..
 2. Run the frontend dependencies
 
 ```sh
+cd frontend
 npm ci
 ```
 
