@@ -4,6 +4,7 @@
 
 - [Docker](https://www.docker.com/) v20.x.x
 - [Docker compose](https://docs.docker.com/compose/) v2
+- [Node.js](https://nodejs.org/en) v16.x.x
 - [Python](https://www.python.org/) v3.9.9
 - [FFmpeg](https://ffmpeg.org/) v5.x
 
