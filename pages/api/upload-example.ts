@@ -10,7 +10,7 @@ type Data = {
 
 const ffmpeg = createFFmpeg({ log: true });
 
-export default function handler(
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>
 ) {
@@ -38,33 +38,28 @@ export default function handler(
       "--fp16",
       "False",
     ];
-    const process = spawn("whisper", args, { detached: true, stdio: "ignore" });
-    process.unref(); // Ensure that the child process is not keeping the server running
+    const process = spawn("whisper", args);
 
-    if (process.stdout) {
-      process.stdout.on("data", (data) => {
-        console.log(`stdout: ${data}`);
-      });
-    }
-
-    if (process.stderr) {
-      process.on("error", (error) => {
-        console.log(`error: ${error.message}`);
-      });
-    }
-
-    process.on("close", (code) => {
-      console.log(`child process closed with code ${code}`);
+    process.stdout.on("data", (data) => {
+      console.log(`stdout: ${data}`);
     });
 
-    process.on("exit", (code) => {
+    process.stderr.on("data", (data) => {
+      console.log(`stderr: ${data}`);
+    });
+
+    process.on("error", (error) => {
+      console.log(`error: ${error.message}`);
+    });
+
+    process.on("close", (code) => {
       console.log(`child process exited with code ${code}`);
     });
   }
 
   try {
-    convertVideoToAudio();
-    transcribeAudio();
+    await convertVideoToAudio();
+    await transcribeAudio();
   } catch (error) {
     console.error(error);
     res.status(400).json({ name: "Failed" });
