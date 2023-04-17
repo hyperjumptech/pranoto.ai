@@ -38,21 +38,26 @@ export default function handler(
       "--fp16",
       "False",
     ];
-    const process = spawn("whisper", args);
+    const process = spawn("whisper", args, { detached: true, stdio: "ignore" });
+    process.unref(); // Ensure that the child process is not keeping the server running
 
-    process.stdout.on("data", (data) => {
-      console.log(`stdout: ${data}`);
-    });
+    if (process.stdout) {
+      process.stdout.on("data", (data) => {
+        console.log(`stdout: ${data}`);
+      });
+    }
 
-    process.stderr.on("data", (data) => {
-      console.log(`stderr: ${data}`);
-    });
-
-    process.on("error", (error) => {
-      console.log(`error: ${error.message}`);
-    });
+    if (process.stderr) {
+      process.on("error", (error) => {
+        console.log(`error: ${error.message}`);
+      });
+    }
 
     process.on("close", (code) => {
+      console.log(`child process closed with code ${code}`);
+    });
+
+    process.on("exit", (code) => {
       console.log(`child process exited with code ${code}`);
     });
   }
