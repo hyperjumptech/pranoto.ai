@@ -50,12 +50,6 @@ export default function Layout({ children }: { children?: ReactNode }) {
                     alt=""
                   />
                   <span className="hidden lg:flex lg:items-center">
-                    <span
-                      className="ml-4 text-sm font-semibold leading-6 text-gray-900"
-                      aria-hidden="true"
-                    >
-                      Your Name
-                    </span>
                   </span>
                 </Menu.Button>
               </Menu>
