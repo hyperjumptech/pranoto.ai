@@ -6,7 +6,7 @@
 - [Docker compose](https://docs.docker.com/compose/) v2
 - [Node.js](https://nodejs.org/en) v16.x.x
 - [Python](https://www.python.org/) v3.9.9
-- [FFmpeg](https://ffmpeg.org/) v5.x
+- [Whisper](https://github.com/openai/whisper) v20230314
 
 ## Getting Started
 
@@ -33,8 +33,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## API Demo Usage
 
-Use CURL or run the API url in browser:
+Use CURL, Postman, or run the API url in browser: 
 
 [http://localhost:3000/api/upload-example](http://localhost:3000/api/upload-example)
 
-Then see the result file in `public/audios/audio.mp3` and `public/texts/text.json`
+Wait for some time and check again to see the result file in `public/audios/audio.mp3` and `public/texts/audio.json`
