@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import fs from "fs";
 import { createFFmpeg, fetchFile } from "@ffmpeg/ffmpeg";
+import { spawn } from "child_process";
 
 type Data = {
   name: string;
@@ -24,16 +25,45 @@ export default function handler(
   }
 
   async function transcribeAudio() {
-    // TODO: use whisper
+    const args = [
+      "public/audios/audio.mp3",
+      "--model",
+      "small.en",
+      "--language",
+      "en",
+      "--output_dir",
+      "public/texts",
+      "--output_format",
+      "json",
+      "--fp16",
+      "False",
+    ];
+    const process = spawn("whisper", args);
+
+    process.stdout.on("data", (data) => {
+      console.log(`stdout: ${data}`);
+    });
+
+    process.stderr.on("data", (data) => {
+      console.log(`stderr: ${data}`);
+    });
+
+    process.on("error", (error) => {
+      console.log(`error: ${error.message}`);
+    });
+
+    process.on("close", (code) => {
+      console.log(`child process exited with code ${code}`);
+    });
   }
 
   try {
     convertVideoToAudio();
-    transcribeAudio()
+    transcribeAudio();
   } catch (error) {
     console.error(error);
-    res.status(400).json({ name: "Failed converting video to audio" });
+    res.status(400).json({ name: "Failed" });
   }
 
-  res.status(200).json({ name: "Success converting video to audio" });
+  res.status(200).json({ name: "Success" });
 }
