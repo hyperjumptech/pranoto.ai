@@ -55,6 +55,10 @@ export async function getVideos({
   return VIDEOS;
 }
 
+export async function find(id: string) {
+  return VIDEOS.find((v) => v.id === id);
+}
+
 export async function insert({
   title,
   type,
@@ -88,7 +92,7 @@ export async function update(
     url,
   };
 
-  const selectedVideo = VIDEOS.find((video) => video.id === id);
+  const selectedVideo = await find(id);
 
   if (!selectedVideo) {
     throw new Error("Video is not found");

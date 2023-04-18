@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Col,
+  Empty,
   Form,
   Input,
   Layout,
@@ -13,6 +14,7 @@ import {
   Skeleton,
   Space,
   Tag,
+  Typography,
   Upload,
   message,
 } from "antd";
@@ -26,6 +28,7 @@ import { RcFile } from "antd/es/upload";
 
 const { Meta } = Card;
 const { Content, Header, Footer } = Layout;
+const { Title } = Typography;
 
 export default function Home() {
   const [search, setSearch] = useState<string>("");
@@ -61,15 +64,16 @@ export default function Home() {
             </Col>
             <Col span={6} offset={6} style={{ textAlign: "right" }}>
               <Button type="primary" onClick={showModal}>
-                Add a new video
+                Upload
               </Button>
             </Col>
           </Row>
         </Header>
-        <Content style={{ padding: "1.5rem" }}>
+        <Content style={{ padding: "1.5rem 3rem" }}>
+          <Title level={1}>Videos</Title>
           <VideoList error={error} isLoading={isLoading} videos={data?.data} />
           <Modal
-            title="Upload a new video"
+            title="Add a video"
             open={isModalOpen}
             onCancel={() => setIsModalOpen(false)}
             footer={false}
@@ -102,6 +106,7 @@ type AddVideoFormProps = {
 };
 
 function AddVideoForm({ onSuccess }: AddVideoFormProps) {
+  const [form] = Form.useForm();
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
@@ -161,6 +166,10 @@ function AddVideoForm({ onSuccess }: AddVideoFormProps) {
 
       onSuccess();
 
+      // reset form
+      setVideoFile(null);
+      form.resetFields();
+
       message.success("Video has been uploaded.");
     } catch (error: any) {
       console.error(error);
@@ -177,7 +186,15 @@ function AddVideoForm({ onSuccess }: AddVideoFormProps) {
   };
 
   return (
-    <Form layout="vertical" onFinish={onFinish}>
+    <Form form={form} layout="vertical" onFinish={onFinish}>
+      <Form.Item
+        label="Title"
+        name="title"
+        validateStatus={validationErrors?.title ? "error" : ""}
+        help={validationErrors?.title}
+      >
+        <Input status={validationErrors?.title ? "error" : ""} />
+      </Form.Item>
       <Form.Item
         label="Video"
         validateStatus={validationErrors?.video ? "error" : ""}
@@ -200,7 +217,7 @@ function AddVideoForm({ onSuccess }: AddVideoFormProps) {
           }}
           showUploadList={false}
         >
-          <Button icon={<UploadOutlined />}>Click to Upload</Button>
+          <Button icon={<UploadOutlined />}>Choose a Video</Button>
           {videoFile && (
             <div
               style={{
@@ -218,14 +235,6 @@ function AddVideoForm({ onSuccess }: AddVideoFormProps) {
           )}
         </Upload>
       </Form.Item>
-      <Form.Item
-        label="Title"
-        name="title"
-        validateStatus={validationErrors?.title ? "error" : ""}
-        help={validationErrors?.title}
-      >
-        <Input status={validationErrors?.title ? "error" : ""} />
-      </Form.Item>
       <Form.Item>
         <Button
           type="primary"
@@ -233,7 +242,7 @@ function AddVideoForm({ onSuccess }: AddVideoFormProps) {
           disabled={isSubmitting}
           loading={isSubmitting}
         >
-          Add
+          Upload
         </Button>
       </Form.Item>
     </Form>
@@ -280,6 +289,12 @@ function VideoList({ error, isLoading, videos }: VideoListProps) {
     );
   }
 
+  if (videos.length === 0) {
+    return (
+      <Empty description="You have no video at the moment. Click Upload button to add a new one." />
+    );
+  }
+
   return (
     <Row gutter={[24, 24]}>
       {videos.map(({ createdAt, id, status, title, type, url }) => (
@@ -295,7 +310,11 @@ function VideoList({ error, isLoading, videos }: VideoListProps) {
                   {formatDistanceToNow(fromUnixTime(createdAt), {
                     addSuffix: true,
                   })}
-                  <Tag color={getStatusColor(status)}>{capitalize(status)}</Tag>
+                  {status !== "done" && (
+                    <Tag color={getStatusColor(status)}>
+                      {capitalize(status)}
+                    </Tag>
+                  )}
                 </Space>
               }
             />

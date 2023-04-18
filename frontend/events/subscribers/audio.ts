@@ -4,7 +4,13 @@ import { downloadFile, uploadFile } from "@/services/object-storage";
 
 const execPromisify = promisify(exec);
 
-export async function onAudioUpload(objectStorageName: string): Promise<void> {
+type OnAudioUploadParams = {
+  objectStorageName: string;
+};
+
+export async function onAudioUpload({
+  objectStorageName,
+}: OnAudioUploadParams): Promise<void> {
   const fileName =
     objectStorageName.split("/")[objectStorageName.split("/").length - 1];
   const fileNameWithoutFormat = fileName.split(".")[0];
@@ -15,7 +21,7 @@ export async function onAudioUpload(objectStorageName: string): Promise<void> {
   );
   await downloadFile({
     destinationFSPath,
-    objectStorageName: `/audios/${objectStorageName}`,
+    objectStorageName,
   });
   console.info(`Audio ${objectStorageName} downloaded to ${destinationFSPath}`);
 
@@ -39,7 +45,8 @@ export async function onAudioUpload(objectStorageName: string): Promise<void> {
   );
 
   // TODO: delete all temporary FS data
-  // TODO: update status to transcribed
+  // TODO: insert transcription to database
+  // TODO: update status to done
 }
 
 type TranscribeAudioParams = {

@@ -3,8 +3,11 @@ import { type ValidationError, object, string } from "yup";
 import * as Minio from "minio";
 import mime from "mime-types";
 import type { Video } from "./entity";
-import { getVideos, insert, update } from "./repository";
+import { find, getVideos, insert, update } from "./repository";
 import { getUnixTimeStamp } from "@/pkg/time";
+import { publish } from "../pubsub/publisher";
+import events from "@/events";
+import { getObjectStorageNameFrom } from "@/pkg/object-storage";
 
 type BaseResponse = {
   message: string;
@@ -40,20 +43,8 @@ export async function index(
 
 export async function create({ body }: NextApiRequest, res: NextApiResponse) {
   try {
-    const videoSchema = object({
-      type: string().required().label("Type"),
-      title: string().required().label("Title"),
-    }).noUnknown();
+    await validateCreateVideoInput(body);
 
-    await videoSchema.validate(body);
-  } catch (error: unknown) {
-    return res.status(400).json({
-      message: "Failed to add a video",
-      error,
-    });
-  }
-
-  try {
     const { type, title } = body;
     const video = await insert({ title, type });
     // return presigned url
@@ -74,41 +65,38 @@ export async function create({ body }: NextApiRequest, res: NextApiResponse) {
   }
 }
 
+async function validateCreateVideoInput(
+  video: Pick<Video, "title" | "type">
+): Promise<void> {
+  const videoSchema = object({
+    type: string().required().label("Type"),
+    title: string().required().label("Title"),
+  }).noUnknown();
+
+  try {
+    await videoSchema.validate(video);
+  } catch (error) {
+    throw new Error((error as ValidationError).errors[0]);
+  }
+}
+
 export async function edit(
   { body, query }: NextApiRequest,
   res: NextApiResponse
 ) {
   try {
-    const videoSchema = object({
-      status: string()
-        .required()
-        .oneOf(["done", "transcribing", "converting", "queueing"])
-        .label("Status"),
-      text: string().label("Text"),
-      title: string().required().label("Title"),
-      url: string()
-        .required()
-        // .url()
-        .label("Video"),
-    }).noUnknown();
+    await validateEditVideoInput(body);
 
-    await videoSchema.validate(body);
-  } catch (error: unknown) {
-    return res.status(400).json({
-      message: "Failed to update the video",
-      errors: (error as ValidationError).errors,
-    });
-  }
+    const isVideoUpdated = (await find(query?.id as string))?.url !== body.url;
 
-  try {
     await update(query?.id as string, body);
 
     // publish an event when video url change
-    // subscriber download the video and convert to audio and download to object storage (status: converting)
-    // publish an event when audio ready
-    // subscriber download the audio, transcribe the audio, and insert the output to database (status: transcribing)
-    // publish an event when trancription ready
-    // subscriber update status to done (status: done)
+    if (isVideoUpdated) {
+      await publish(events.video.upload, {
+        objectStorageName: getObjectStorageNameFrom(body.url),
+      });
+    }
 
     return res.status(200).json({ message: "Updated" });
   } catch (error: any) {
@@ -117,6 +105,29 @@ export async function edit(
       message: "Failed to update a video",
       error: error.message,
     });
+  }
+}
+
+async function validateEditVideoInput(
+  video: Pick<Video, "status" | "text" | "title" | "url">
+): Promise<void> {
+  const videoSchema = object({
+    status: string()
+      .required()
+      .oneOf(["done", "transcribing", "converting", "queueing"])
+      .label("Status"),
+    text: string().label("Text"),
+    title: string().required().label("Title"),
+    url: string()
+      .required()
+      // .url()
+      .label("Video"),
+  }).noUnknown();
+
+  try {
+    await videoSchema.validate(video);
+  } catch (error) {
+    throw new Error((error as ValidationError).errors[0]);
   }
 }
 

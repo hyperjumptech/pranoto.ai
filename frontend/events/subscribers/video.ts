@@ -1,10 +1,18 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { downloadFile, uploadFile } from "@/services/object-storage";
+import { publish } from "@/services/pubsub/publisher";
+import events from "..";
 
 const execPromisify = promisify(exec);
 
-export async function onVideoUpload(objectStorageName: string): Promise<void> {
+type OnVideoUploadParams = {
+  objectStorageName: string;
+};
+
+export async function onVideoUpload({
+  objectStorageName,
+}: OnVideoUploadParams): Promise<void> {
   const VideoFileName = objectStorageName.replace("/videos/", "");
   const videoFileNameWithoutFormat = VideoFileName.split(".")[0];
   const videoFSPath = `/tmp/${VideoFileName}`;
@@ -37,6 +45,10 @@ export async function onVideoUpload(objectStorageName: string): Promise<void> {
   console.info(
     `Audio ${audioDestinationFSPath} uploaded to ${audioObjectStorageName}`
   );
+
+  await publish(events.video.convert, {
+    objectStorageName: audioObjectStorageName,
+  });
 
   // TODO: delete all temporary FS data
   // TODO: update status to converted
