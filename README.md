@@ -11,6 +11,8 @@
 
 ## Getting Started
 
+### Development
+
 1. Run the system dependencies
 
 ```sh
@@ -19,18 +21,30 @@ cd .dev && docker compose up -d && cd ..
 
 2. Run the frontend dependencies
 
-````sh
+```sh
 cd frontend
 npm ci
 ```
 
-3. Run the worker:
+3. Copy the environment variable
+
+```sh
+cp .env.example .env
+```
+
+4. Migrate the database
+
+```sh
+npm run prisma:migrate-dev
+```
+
+5. Run the worker
 
 ```sh
 npm run worker
-````
+```
 
-4. Run the development server:
+6. Run the development server
 
 ```sh
 npm run dev

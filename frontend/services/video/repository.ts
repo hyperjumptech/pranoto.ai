@@ -1,62 +1,22 @@
 import { nanoid } from "nanoid";
-import type { Video } from "./entity";
+import { PrismaClient, VideoStatus } from "@prisma/client";
+import type { Video } from "@prisma/client";
 import { getUnixTimeStamp } from "@/pkg/time";
 
 type GetVideoParams = {
   search?: string;
 };
 
-let VIDEOS: Video[] = [
-  {
-    id: "1",
-    createdAt: 1680356615,
-    updatedAt: 1680356615,
-    status: "done",
-    title: "Oppenheimer",
-    url: "/oppenheimer.mp4",
-    type: "video/mp4",
-    text: "",
-  },
-  {
-    id: "2",
-    createdAt: 1680443015,
-    updatedAt: 1680356615,
-    status: "transcribing",
-    title: "Dunkirk",
-    url: "/dunkirk.mp4",
-    type: "video/mp4",
-    text: "",
-  },
-  {
-    id: "3",
-    createdAt: 1680529415,
-    updatedAt: 1680356615,
-    status: "converting",
-    title: "Oppenheimer",
-    url: "/oppenheimer.mp4",
-    type: "video/mp4",
-    text: "",
-  },
-  {
-    id: "4",
-    createdAt: 1680615815,
-    updatedAt: 1680356615,
-    status: "queueing",
-    title: "Dunkirk",
-    url: "/dunkirk.mp4",
-    type: "video/mp4",
-    text: "",
-  },
-];
+const prisma = new PrismaClient();
 
 export async function getVideos({
   search,
 }: GetVideoParams): Promise<Omit<Video, "text">[]> {
-  return VIDEOS;
+  return await prisma.video.findMany();
 }
 
 export async function find(id: string) {
-  return VIDEOS.find((v) => v.id === id);
+  return await prisma.video.findUnique({ where: { id } });
 }
 
 export async function insert({
@@ -64,9 +24,9 @@ export async function insert({
   type,
 }: Pick<Video, "title" | "type">): Promise<Video> {
   const timeNow = getUnixTimeStamp();
-  const video: Video = {
+  const data: Video = {
     id: nanoid(),
-    status: "queueing",
+    status: VideoStatus.QUEUEING,
     text: "",
     title,
     url: "",
@@ -75,15 +35,15 @@ export async function insert({
     updatedAt: timeNow,
   };
 
-  VIDEOS.push(video);
-
-  return video;
+  return await prisma.video.create({
+    data,
+  });
 }
 
 export async function update(
   id: string,
   { status, text, title, url }: Pick<Video, "status" | "title" | "text" | "url">
-) {
+): Promise<Video> {
   const video = {
     updatedAt: getUnixTimeStamp(),
     status,
@@ -92,13 +52,8 @@ export async function update(
     url,
   };
 
-  const selectedVideo = await find(id);
-
-  if (!selectedVideo) {
-    throw new Error("Video is not found");
-  }
-
-  const updatedVideo = { ...selectedVideo, ...video };
-
-  VIDEOS = [...VIDEOS.filter((video) => video.id !== id), updatedVideo];
+  return await prisma.video.update({
+    data: video,
+    where: { id },
+  });
 }

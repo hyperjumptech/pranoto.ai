@@ -2,12 +2,12 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { type ValidationError, object, string } from "yup";
 import * as Minio from "minio";
 import mime from "mime-types";
-import type { Video } from "./entity";
-import { find, getVideos, insert, update } from "./repository";
-import { getUnixTimeStamp } from "@/pkg/time";
-import { publish } from "../pubsub/publisher";
+import type { Video } from "@prisma/client";
 import events from "@/events";
 import { getObjectStorageNameFrom } from "@/pkg/object-storage";
+import { getUnixTimeStamp } from "@/pkg/time";
+import { publish } from "../pubsub/publisher";
+import { find, getVideos, insert, update } from "./repository";
 
 type BaseResponse = {
   message: string;
@@ -114,7 +114,7 @@ async function validateEditVideoInput(
   const videoSchema = object({
     status: string()
       .required()
-      .oneOf(["done", "transcribing", "converting", "queueing"])
+      .oneOf(["DONE", "TRANSCRIBING", "CONVERTING", "QUEUEING"])
       .label("Status"),
     text: string().label("Text"),
     title: string().required().label("Title"),

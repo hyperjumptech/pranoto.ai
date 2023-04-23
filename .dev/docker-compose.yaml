@@ -45,3 +45,15 @@ services:
       - 4222:4222
       - 8222:8222
     restart: unless-stopped
+  postgres:
+    image: postgres:15-alpine
+    container_name: pranoto-postgres
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: pranoto_password
+      POSTGRES_USER: pranoto_user
+      POSTGRES_DB: pranoto_db
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    restart: unless-stopped

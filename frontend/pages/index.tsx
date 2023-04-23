@@ -21,10 +21,11 @@ import {
 import { UploadOutlined } from "@ant-design/icons";
 import useSWR from "swr";
 import { formatDistanceToNow, fromUnixTime } from "date-fns";
-import { axiosInstance, fetcher } from "@/pkg/fetcher";
 import { object, string } from "yup";
 import axios from "axios";
 import { RcFile } from "antd/es/upload";
+import { type Video, VideoStatus } from "@prisma/client";
+import { axiosInstance, fetcher } from "@/pkg/fetcher";
 
 const { Meta } = Card;
 const { Content, Header, Footer } = Layout;
@@ -157,7 +158,7 @@ function AddVideoForm({ onSuccess }: AddVideoFormProps) {
 
       // update the video url
       const video = {
-        status: "queueing",
+        status: VideoStatus.QUEUEING,
         text: "",
         title: values.title,
         url: presignedURL.split("?")[0],
@@ -249,17 +250,6 @@ function AddVideoForm({ onSuccess }: AddVideoFormProps) {
   );
 }
 
-type VideoStatus = "done" | "transcribing" | "converting" | "queueing";
-
-type Video = {
-  id: string;
-  createdAt: number;
-  status: VideoStatus;
-  title: string;
-  url: string;
-  type: string;
-};
-
 type VideoListProps = {
   error: string;
   isLoading: boolean;
@@ -310,7 +300,7 @@ function VideoList({ error, isLoading, videos }: VideoListProps) {
                   {formatDistanceToNow(fromUnixTime(createdAt), {
                     addSuffix: true,
                   })}
-                  {status !== "done" && (
+                  {status !== VideoStatus.DONE && (
                     <Tag color={getStatusColor(status)}>
                       {capitalize(status)}
                     </Tag>
@@ -327,10 +317,10 @@ function VideoList({ error, isLoading, videos }: VideoListProps) {
 
 function getStatusColor(videoStatus: VideoStatus): string {
   switch (videoStatus) {
-    case "done":
+    case VideoStatus.DONE:
       return "success";
-    case "converting":
-    case "transcribing":
+    case VideoStatus.CONVERTING:
+    case VideoStatus.TRANSCRIBING:
       return "blue";
 
     default:
