@@ -1,21 +1,27 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { downloadFile, uploadFile } from "@/services/object-storage";
+import { updateStatus } from "@/services/video/repository";
+import { VideoStatus } from "@prisma/client";
 
 const execPromisify = promisify(exec);
 
 type OnAudioUploadParams = {
+  id: string;
   objectStorageName: string;
 };
 
 export async function onAudioUpload({
+  id,
   objectStorageName,
 }: OnAudioUploadParams): Promise<void> {
   const fileName =
     objectStorageName.split("/")[objectStorageName.split("/").length - 1];
   const fileNameWithoutFormat = fileName.split(".")[0];
-  // TODO: Update status to transcribing
   const destinationFSPath = `/tmp/${fileName}`;
+
+  await updateStatus(id, VideoStatus.TRANSCRIBING);
+
   console.info(
     `Audio ${objectStorageName} downloading to ${destinationFSPath}`
   );
@@ -44,9 +50,9 @@ export async function onAudioUpload({
     `Text ${outputFSPath} uploaded to ${transcriptionObjectStorageName}`
   );
 
-  // TODO: delete all temporary FS data
   // TODO: insert transcription to database
-  // TODO: update status to done
+  await updateStatus(id, VideoStatus.TRANSCRIBED);
+  // TODO: delete all temporary FS data
 }
 
 type TranscribeAudioParams = {

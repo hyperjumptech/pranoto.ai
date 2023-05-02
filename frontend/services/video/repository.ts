@@ -57,3 +57,18 @@ export async function update(
     where: { id },
   });
 }
+
+export async function updateStatus(
+  id: string,
+  status: VideoStatus
+): Promise<Video> {
+  const video = {
+    updatedAt: getUnixTimeStamp(),
+    status,
+  };
+
+  return await prisma.video.update({
+    data: video,
+    where: { id },
+  });
+}

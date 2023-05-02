@@ -1,23 +1,26 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { downloadFile, uploadFile } from "@/services/object-storage";
-import { publish } from "@/services/pubsub/publisher";
-import events from "..";
+import { updateStatus } from "@/services/video/repository";
+import { publishVideoConverted } from "../publishers/video";
+import { VideoStatus } from "@prisma/client";
 
 const execPromisify = promisify(exec);
 
 type OnVideoUploadParams = {
+  id: string;
   objectStorageName: string;
 };
 
 export async function onVideoUpload({
+  id,
   objectStorageName,
 }: OnVideoUploadParams): Promise<void> {
   const VideoFileName = objectStorageName.replace("/videos/", "");
   const videoFileNameWithoutFormat = VideoFileName.split(".")[0];
   const videoFSPath = `/tmp/${VideoFileName}`;
 
-  // TODO: update status to converting
+  await updateStatus(id, VideoStatus.CONVERTING);
 
   console.info(`Video ${objectStorageName} downloading to ${videoFSPath}`);
   await downloadFile({
@@ -46,12 +49,14 @@ export async function onVideoUpload({
     `Audio ${audioDestinationFSPath} uploaded to ${audioObjectStorageName}`
   );
 
-  await publish(events.video.convert, {
-    objectStorageName: audioObjectStorageName,
+  await updateStatus(id, VideoStatus.CONVERTED);
+
+  await publishVideoConverted({
+    id,
+    objectStorageName,
   });
 
   // TODO: delete all temporary FS data
-  // TODO: update status to converted
 }
 
 type ConvertVideoToAudio = {

@@ -1,10 +1,7 @@
-const events = {
+export const events = {
   video: {
-    upload: "VIDEO_UPLOAD",
-    convert: "VIDEO_CONVERT",
-  },
-  audio: {
-    transcribe: "AUDIO_TRANSCRIBE",
+    uploaded: "VIDEO_UPLOADED",
+    converted: "VIDEO_CONVERTED",
   },
 };
 
