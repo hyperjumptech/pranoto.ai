@@ -3,10 +3,9 @@ import { type ValidationError, object, string } from "yup";
 import * as Minio from "minio";
 import mime from "mime-types";
 import type { Video } from "@prisma/client";
-import events from "@/events";
+import { publishVideoUploaded } from "@/events/publishers/video";
 import { getObjectStorageNameFrom } from "@/pkg/object-storage";
 import { getUnixTimeStamp } from "@/pkg/time";
-import { publish } from "../pubsub/publisher";
 import { find, getVideos, insert, update } from "./repository";
 
 type BaseResponse = {
@@ -87,13 +86,15 @@ export async function edit(
   try {
     await validateEditVideoInput(body);
 
-    const isVideoUpdated = (await find(query?.id as string))?.url !== body.url;
+    const isVideoURLUpdated =
+      (await find(query?.id as string))?.url !== body.url;
 
     await update(query?.id as string, body);
 
     // publish an event when video url change
-    if (isVideoUpdated) {
-      await publish(events.video.upload, {
+    if (isVideoURLUpdated) {
+      await publishVideoUploaded({
+        id: query?.id as string,
         objectStorageName: getObjectStorageNameFrom(body.url),
       });
     }

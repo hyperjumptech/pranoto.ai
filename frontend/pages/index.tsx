@@ -300,7 +300,7 @@ function VideoList({ error, isLoading, videos }: VideoListProps) {
                   {formatDistanceToNow(fromUnixTime(createdAt), {
                     addSuffix: true,
                   })}
-                  {status !== VideoStatus.DONE && (
+                  {status !== VideoStatus.TRANSCRIBED && (
                     <Tag color={getStatusColor(status)}>
                       {capitalize(status)}
                     </Tag>
@@ -317,9 +317,8 @@ function VideoList({ error, isLoading, videos }: VideoListProps) {
 
 function getStatusColor(videoStatus: VideoStatus): string {
   switch (videoStatus) {
-    case VideoStatus.DONE:
-      return "success";
     case VideoStatus.CONVERTING:
+    case VideoStatus.CONVERTED:
     case VideoStatus.TRANSCRIBING:
       return "blue";
 

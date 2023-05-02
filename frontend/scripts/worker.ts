@@ -6,9 +6,9 @@ import { closeConnection, newConnection } from "@/services/pubsub/connect";
 
 let nc: NatsConnection;
 const jc = JSONCodec();
-const eventConsumers = [
-  { event: events.video.upload, consumer: onVideoUpload },
-  { event: events.video.convert, consumer: onAudioUpload },
+export const eventConsumers = [
+  { event: events.video.uploaded, consumer: onVideoUpload },
+  { event: events.video.converted, consumer: onAudioUpload },
 ];
 
 async function main() {

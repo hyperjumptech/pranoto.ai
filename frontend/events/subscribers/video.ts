@@ -1,30 +1,33 @@
 import { exec } from "node:child_process";
+import fs from "node:fs/promises";
 import { promisify } from "node:util";
 import { downloadFile, uploadFile } from "@/services/object-storage";
-import { publish } from "@/services/pubsub/publisher";
-import events from "..";
+import { update } from "@/services/video/repository";
+import { publishVideoConverted } from "../publishers/video";
+import { VideoStatus } from "@prisma/client";
 
 const execPromisify = promisify(exec);
 
 type OnVideoUploadParams = {
+  id: string;
   objectStorageName: string;
 };
 
 export async function onVideoUpload({
+  id,
   objectStorageName,
 }: OnVideoUploadParams): Promise<void> {
   const VideoFileName = objectStorageName.replace("/videos/", "");
   const videoFileNameWithoutFormat = VideoFileName.split(".")[0];
   const videoFSPath = `/tmp/${VideoFileName}`;
 
-  // TODO: update status to converting
+  await update(id, { status: VideoStatus.CONVERTING });
 
   console.info(`Video ${objectStorageName} downloading to ${videoFSPath}`);
   await downloadFile({
     destinationFSPath: videoFSPath,
     objectStorageName,
   });
-  console.info(`Video ${objectStorageName} downloaded to ${videoFSPath}`);
 
   const audioDestinationFSPath = `/tmp/${videoFileNameWithoutFormat}.mp3`;
   console.info(`Video ${videoFSPath} converting to ${audioDestinationFSPath}`);
@@ -32,7 +35,6 @@ export async function onVideoUpload({
     audioDestinationFSPath,
     videoFSPath,
   });
-  console.info(`Video ${videoFSPath} converted to ${audioDestinationFSPath}`);
 
   const audioObjectStorageName = `/audios/${videoFileNameWithoutFormat}.mp3`;
   console.info(
@@ -42,16 +44,19 @@ export async function onVideoUpload({
     objectStorageName: audioObjectStorageName,
     targetFSPath: audioDestinationFSPath,
   });
-  console.info(
-    `Audio ${audioDestinationFSPath} uploaded to ${audioObjectStorageName}`
-  );
 
-  await publish(events.video.convert, {
-    objectStorageName: audioObjectStorageName,
+  await update(id, { status: VideoStatus.CONVERTED });
+
+  await publishVideoConverted({
+    id,
+    objectStorageName,
   });
 
-  // TODO: delete all temporary FS data
-  // TODO: update status to converted
+  // delete temporary file
+  console.info(`Deleting temporary file ${videoFSPath}`);
+  fs.rm(videoFSPath);
+  console.info(`Deleting temporary file ${audioDestinationFSPath}`);
+  fs.rm(audioDestinationFSPath);
 }
 
 type ConvertVideoToAudio = {

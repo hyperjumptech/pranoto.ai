@@ -42,7 +42,12 @@ export async function insert({
 
 export async function update(
   id: string,
-  { status, text, title, url }: Pick<Video, "status" | "title" | "text" | "url">
+  {
+    status,
+    text,
+    title,
+    url,
+  }: Partial<Pick<Video, "status" | "title" | "text" | "url">>
 ): Promise<Video> {
   const video = {
     updatedAt: getUnixTimeStamp(),
