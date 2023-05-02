@@ -317,8 +317,6 @@ function VideoList({ error, isLoading, videos }: VideoListProps) {
 
 function getStatusColor(videoStatus: VideoStatus): string {
   switch (videoStatus) {
-    case VideoStatus.TRANSCRIBED:
-      return "success";
     case VideoStatus.CONVERTING:
     case VideoStatus.CONVERTED:
     case VideoStatus.TRANSCRIBING:

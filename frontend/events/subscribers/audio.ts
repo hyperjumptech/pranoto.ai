@@ -1,7 +1,8 @@
 import { exec } from "node:child_process";
+import fs from "node:fs/promises";
 import { promisify } from "node:util";
 import { downloadFile, uploadFile } from "@/services/object-storage";
-import { updateStatus } from "@/services/video/repository";
+import { update } from "@/services/video/repository";
 import { VideoStatus } from "@prisma/client";
 
 const execPromisify = promisify(exec);
@@ -20,7 +21,7 @@ export async function onAudioUpload({
   const fileNameWithoutFormat = fileName.split(".")[0];
   const destinationFSPath = `/tmp/${fileName}`;
 
-  await updateStatus(id, VideoStatus.TRANSCRIBING);
+  await update(id, { status: VideoStatus.TRANSCRIBING });
 
   console.info(
     `Audio ${objectStorageName} downloading to ${destinationFSPath}`
@@ -29,14 +30,12 @@ export async function onAudioUpload({
     destinationFSPath,
     objectStorageName,
   });
-  console.info(`Audio ${objectStorageName} downloaded to ${destinationFSPath}`);
 
   const outputFSPath = `/tmp/${fileNameWithoutFormat}.json`;
   console.info(`Audio ${destinationFSPath} transcribing to ${outputFSPath}`);
   await transcribeAudio({
     audioFSPath: destinationFSPath,
   });
-  console.info(`Audio ${destinationFSPath} transcribed to ${outputFSPath}`);
 
   const transcriptionObjectStorageName = `/texts/${fileNameWithoutFormat}.json`;
   console.info(
@@ -46,13 +45,15 @@ export async function onAudioUpload({
     objectStorageName: transcriptionObjectStorageName,
     targetFSPath: outputFSPath,
   });
-  console.info(
-    `Text ${outputFSPath} uploaded to ${transcriptionObjectStorageName}`
-  );
 
-  // TODO: insert transcription to database
-  await updateStatus(id, VideoStatus.TRANSCRIBED);
-  // TODO: delete all temporary FS data
+  console.info(`Insert transcription from ${outputFSPath} to database`);
+  await storeTranscription({ id, transcriptionFSPath: outputFSPath });
+
+  // delete temporary file
+  console.info(`Deleting temporary file ${destinationFSPath}`);
+  fs.rm(destinationFSPath);
+  console.info(`Deleting temporary file ${outputFSPath}`);
+  fs.rm(outputFSPath);
 }
 
 type TranscribeAudioParams = {
@@ -68,4 +69,18 @@ async function transcribeAudio({
   console.info(`Audio Run: ${cmd}`);
 
   await execPromisify(cmd);
+}
+
+type StoreTranscription = {
+  id: string;
+  transcriptionFSPath: string;
+};
+
+async function storeTranscription({
+  id,
+  transcriptionFSPath,
+}: StoreTranscription) {
+  const transcription = await fs.readFile(transcriptionFSPath, "utf8");
+  const { text } = JSON.parse(transcription);
+  await update(id, { status: VideoStatus.TRANSCRIBED, text });
 }

@@ -42,7 +42,12 @@ export async function insert({
 
 export async function update(
   id: string,
-  { status, text, title, url }: Pick<Video, "status" | "title" | "text" | "url">
+  {
+    status,
+    text,
+    title,
+    url,
+  }: Partial<Pick<Video, "status" | "title" | "text" | "url">>
 ): Promise<Video> {
   const video = {
     updatedAt: getUnixTimeStamp(),
@@ -50,21 +55,6 @@ export async function update(
     text,
     title,
     url,
-  };
-
-  return await prisma.video.update({
-    data: video,
-    where: { id },
-  });
-}
-
-export async function updateStatus(
-  id: string,
-  status: VideoStatus
-): Promise<Video> {
-  const video = {
-    updatedAt: getUnixTimeStamp(),
-    status,
   };
 
   return await prisma.video.update({
