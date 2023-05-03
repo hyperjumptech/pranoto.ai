@@ -20,6 +20,8 @@ model Video {
   text      String
   createdAt Int
   updatedAt Int
+
+  @@index([title, text])
 }
 
 enum VideoStatus {
