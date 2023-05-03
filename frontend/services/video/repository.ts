@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { PrismaClient, VideoStatus } from "@prisma/client";
+import { Prisma, PrismaClient, VideoStatus } from "@prisma/client";
 import type { Video } from "@prisma/client";
 import { getUnixTimeStamp } from "@/pkg/time";
 
@@ -12,7 +12,20 @@ const prisma = new PrismaClient();
 export async function getVideos({
   search,
 }: GetVideoParams): Promise<Omit<Video, "text">[]> {
-  return await prisma.video.findMany();
+  const query: Prisma.VideoFindManyArgs | undefined = search
+    ? ({
+        where: {
+          text: { search: parsewordsToFTSQueryOperator(search) },
+          title: { search: parsewordsToFTSQueryOperator(search) },
+        },
+      } as Prisma.VideoFindManyArgs)
+    : undefined;
+
+  return await prisma.video.findMany(query);
+}
+
+function parsewordsToFTSQueryOperator(words: string): string {
+  return words.split(" ").join(" | ");
 }
 
 export async function find(id: string) {
