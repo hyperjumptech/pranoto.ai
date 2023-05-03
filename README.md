@@ -1,7 +1,7 @@
 # Pranoto.ai
 
 ## About
-Pranoto.ai is open source product, which allows users to upload, transacribe, and index their videos. The product is beneficial for those who want to have knowledge management in the format of videos with easiness of search to get imnto the point where a word is mentioned.
+Pranoto.ai is open source product, which allows users to upload, transcribe, and index their videos. The product is useful for those who want to have knowledge management platform in the format of videos with index/search capability.
 
 ## Prerequisities
 The following components must be installed prior to usage of Pranoto.ai.
@@ -63,7 +63,7 @@ npm run dev
 
 4. Upon upload completion, video will be queued to be process (transcribed and indexed)
 
-5. Upon processed, video will be availbale for search. Try to search any word or expression by typing any word and press sarch.
+5. Upon processed (status of video is updated), video will be available for search. Try to search any word or expression by typing any word and press search.
 
 6. Result will be shown in the page result. Try to click to go into the point of time where word is mentioned in Video.
 
