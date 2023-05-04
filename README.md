@@ -1,10 +1,12 @@
 # Pranoto.ai
 
 ## About
-Pranoto.ai is open source product, which allows users to upload, transcribe, and index their videos. The product is useful for those who want to have knowledge management platform in the format of videos with index/search capability.
+Pranoto.ai is an open source product, which allow users to upload, transcribe, and index their videos. The product is useful for those who want to have a knowledge management platform in video format with index/search capabilities.
 
 ## Prerequisities
+
 The following components must be installed prior to usage of Pranoto.ai.
+
 - [Docker](https://www.docker.com/) v20.x.x
 - [Docker compose](https://docs.docker.com/compose/) v2
 - [Node.js](https://nodejs.org/en) v16.x.x
@@ -21,6 +23,7 @@ The following components must be installed prior to usage of Pranoto.ai.
 ```sh
 cd .dev && docker compose up -d && cd ..
 ```
+
 Please note, if you have local database with 5432 port, you need to edit docker-compose.yaml to expose pranoto-postgres port to other than 5432. For example 5442, thus, "- 5442:5432".
 
 2. Run the frontend dependencies
@@ -53,24 +56,17 @@ npm run worker
 ```sh
 npm run dev
 ```
+
 ## How to Use It
 
 1. Open [http://localhost:3000](http://localhost:3000) with your browser to see UI.
 
-2. Press Upload button 
+2. Press Upload button
 
 3. Select your video and Upload
 
 4. Upon upload completion, video will be queued to be process (transcribed and indexed)
 
-5. Upon processed (status of video is updated), video will be available for search. Try to search any word or expression by typing any word and press search.
+5. Upon processed (status of video is updated), video will be available to searches. Try to search any word or expression by typing any word and press search.
 
 6. Result will be shown in the page result. Try to click to go into the point of time where word is mentioned in Video.
-
-## API Demo Usage
-
-Use CURL, Postman, or run the API url in browser:
-
-[http://localhost:3000/api/upload-example](http://localhost:3000/api/upload-example)
-
-Wait for some time and check again to see the result file in `public/audios/audio.mp3` and `public/texts/audio.json`

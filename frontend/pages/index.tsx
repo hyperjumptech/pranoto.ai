@@ -33,11 +33,14 @@ const { Title } = Typography;
 
 export default function Home() {
   const [search, setSearch] = useState<string>("");
-  const { data, error, isLoading, mutate } = useSWR("/v1/videos", fetcher);
+  const { data, error, isLoading, mutate } = useSWR(
+    search ? `/v1/videos?q=${search}` : "/v1/videos",
+    fetcher
+  );
   const handleSearch: KeyboardEventHandler<HTMLInputElement> = (e) => {
     e.preventDefault();
 
-    console.log(search);
+    setSearch(search);
   };
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
