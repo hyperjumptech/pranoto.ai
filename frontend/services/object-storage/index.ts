@@ -1,12 +1,12 @@
 import * as Minio from "minio";
+import { config } from '../../config/config'
 
-const BUCKET_NAME = "pranoto-bucket";
+const BUCKET_NAME = config.storage.bucketName;
 const minioClient = new Minio.Client({
-  endPoint: "localhost",
-  port: 9000,
-  useSSL: false,
-  accessKey: "pranoto_access_key",
-  secretKey: "pranoto_secret_key",
+  endPoint: config.storage.host,
+  port: Number(config.storage.port), 
+  accessKey: config.storage.accessKey,
+  secretKey: config.storage.secretKey
 });
 
 type DownloadFileParams = {
