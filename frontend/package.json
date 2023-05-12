@@ -10,7 +10,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate-dev": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "worker": "tsx ./scripts/worker.ts"
+    "worker": "tsx ./scripts/worker.ts",
+    "test": ""
   },
   "dependencies": {
     "@ant-design/icons": "5.0.1",
