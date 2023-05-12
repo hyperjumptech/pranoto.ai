@@ -5,12 +5,7 @@ dotenv.config()
 
 export const config = {
     db: {
-        host: process.env.DB_HOST || '0.0.0.0',
-        port: process.env.DB_PORT || '5432',
-        user: process.env.DB_USER || 'pranoto_user',
-        password: process.env.DB_PASWORD || 'pranoto_password',
-        dbname: process.env.DB_NAME || 'pranoto_db',
-        uri: process.env.CONNECTION_STRING || ''
+        uri: process.env.CONNECTION_STRING || 'postgres://pranoto_user:pranoto_password@0.0.0.0:5432/pranoto_db'
     },
     storage: {
         // object storage
@@ -22,14 +17,8 @@ export const config = {
     },
     queue: {
         // Redis or natt
-        host: process.env.QUEUE_HOST || '0.0.0.0',
-        port: process.env.QUEUE_PORT || '',
         uri: process.env.QUEUE_URI || ''
-    },
-    language: {
-        default: process.env.DEFAULT_LANGUAGE || "auto" // english, french, etc..
-    }
-    
+    }    
 }
 
 
