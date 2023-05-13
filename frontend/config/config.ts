@@ -17,7 +17,11 @@ export const config = {
     },
     queue: {
         // Redis or natt
-        uri: process.env.QUEUE_URI || ''
+        host: "0.0.0.0",
+        port: 42222,
+        user: "user",
+        pass: "password",
+        uri: process.env.QUEUE_URI || 'nats://0.0.0.0:4222'
     }    
 }
 
