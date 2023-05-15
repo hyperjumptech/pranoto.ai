@@ -21,8 +21,6 @@ model Video {
   segments  Segment[]
   createdAt Int
   updatedAt Int
-
-  @@index([title, text])
 }
 
 enum VideoStatus {
