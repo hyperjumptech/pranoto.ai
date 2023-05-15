@@ -81,6 +81,6 @@ async function storeTranscription({
   transcriptionFSPath,
 }: StoreTranscription) {
   const transcription = await fs.readFile(transcriptionFSPath, "utf8");
-  const { text } = JSON.parse(transcription);
-  await update(id, { status: VideoStatus.TRANSCRIBED, text });
+  const { segments, text } = JSON.parse(transcription);
+  await update(id, { segments, status: VideoStatus.TRANSCRIBED, text });
 }

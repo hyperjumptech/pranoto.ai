@@ -18,6 +18,7 @@ model Video {
   url       String
   type      String
   text      String
+  segments  Json[]
   createdAt Int
   updatedAt Int
 

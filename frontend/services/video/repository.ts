@@ -56,14 +56,16 @@ export async function insert({
 export async function update(
   id: string,
   {
+    segments,
     status,
     text,
     title,
     url,
-  }: Partial<Pick<Video, "status" | "title" | "text" | "url">>
+  }: Partial<Pick<Video, "segments", "status" | "title" | "text" | "url">>
 ): Promise<Video> {
   const video = {
     updatedAt: getUnixTimeStamp(),
+    segments,
     status,
     text,
     title,
