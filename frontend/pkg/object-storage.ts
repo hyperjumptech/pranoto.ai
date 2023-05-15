@@ -1,7 +1,8 @@
-import { config } from '../config/config'
+type ObjectStorage = {
+  bucketName: string;
+  url: string;
+};
 
-const BUCKET_NAME = config.storage.bucketName;
-
-export function getObjectStorageNameFrom(url: string) {
-  return url.split(BUCKET_NAME)[1];
+export function getObjectStorageNameFrom({ bucketName, url }: ObjectStorage) {
+  return url.split(bucketName)[1];
 }

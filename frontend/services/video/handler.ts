@@ -3,6 +3,7 @@ import { type ValidationError, object, string } from "yup";
 import * as Minio from "minio";
 import mime from "mime-types";
 import type { Video } from "@prisma/client";
+import { config } from "@/config";
 import { publishVideoUploaded } from "@/events/publishers/video";
 import { getObjectStorageNameFrom } from "@/pkg/object-storage";
 import { getUnixTimeStamp } from "@/pkg/time";
@@ -95,7 +96,10 @@ export async function edit(
     if (isVideoURLUpdated) {
       await publishVideoUploaded({
         id: query?.id as string,
-        objectStorageName: getObjectStorageNameFrom(body.url),
+        objectStorageName: getObjectStorageNameFrom({
+          bucketName: config.objectStorage.bucketName,
+          url: body.url,
+        }),
       });
     }
 

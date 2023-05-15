@@ -1,12 +1,12 @@
 import * as Minio from "minio";
-import { config } from '../../config/config'
+import { config } from "../../config";
 
-const BUCKET_NAME = config.storage.bucketName;
+const { accessKey, bucketName, host, port, secretKey } = config.objectStorage;
 const minioClient = new Minio.Client({
-  endPoint: config.storage.host,
-  port: Number(config.storage.port), 
-  accessKey: config.storage.accessKey,
-  secretKey: config.storage.secretKey
+  endPoint: host,
+  port: Number(port),
+  accessKey: accessKey,
+  secretKey: secretKey,
 });
 
 type DownloadFileParams = {
@@ -19,7 +19,7 @@ export async function downloadFile({
   objectStorageName,
 }: DownloadFileParams) {
   await minioClient.fGetObject(
-    BUCKET_NAME,
+    bucketName,
     objectStorageName,
     destinationFSPath
   );
@@ -31,5 +31,5 @@ export async function uploadFile({
   targetFSPath,
   objectStorageName,
 }: UploadFileParams) {
-  await minioClient.fPutObject(BUCKET_NAME, objectStorageName, targetFSPath);
+  await minioClient.fPutObject(bucketName, objectStorageName, targetFSPath);
 }

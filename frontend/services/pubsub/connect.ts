@@ -1,7 +1,7 @@
 import { type NatsConnection, connect } from "nats";
-import { config } from '../../config/config'
+import { config } from "../../config";
 
-const connectionOptions = { servers: config.queue.host };
+const connectionOptions = { servers: config.messaging.host };
 let nc: NatsConnection;
 
 export async function newConnection() {

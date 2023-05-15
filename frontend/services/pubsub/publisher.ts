@@ -1,8 +1,8 @@
 import { JSONCodec } from "nats";
 import { newConnection } from "./connect";
-import { config } from '../../config/config'
+import { config } from "../../config";
 
-const connectionOptions = { servers: config.queue.host };
+const connectionOptions = { servers: config.messaging.host };
 const jc = JSONCodec();
 
 export async function publish(event: string, message: Record<string, any>) {
