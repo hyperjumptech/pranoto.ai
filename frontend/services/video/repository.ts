@@ -20,8 +20,9 @@ export async function getVideos({
   const query: Prisma.VideoFindManyArgs | undefined = search
     ? ({
         where: {
-          text: { search: parsewordsToFTSQueryOperator(search) },
-          title: { search: parsewordsToFTSQueryOperator(search) },
+          segments: {
+            some: { text: { search: parsewordsToFTSQueryOperator(search) } },
+          },
         },
       } as Prisma.VideoFindManyArgs)
     : undefined;
