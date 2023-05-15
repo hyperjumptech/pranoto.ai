@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { type ValidationError, object, string } from "yup";
-import * as Minio from "minio";
 import mime from "mime-types";
 import type { Video } from "@prisma/client";
 import { config } from "@/config";
@@ -8,6 +7,7 @@ import { publishVideoUploaded } from "@/events/publishers/video";
 import { getObjectStorageNameFrom } from "@/pkg/object-storage";
 import { getUnixTimeStamp } from "@/pkg/time";
 import { find, getVideos, insert, update } from "./repository";
+import { getPresignedURL } from "../object-storage";
 
 type BaseResponse = {
   message: string;
@@ -47,10 +47,12 @@ export async function create({ body }: NextApiRequest, res: NextApiResponse) {
 
     const { type, title } = body;
     const video = await insert({ title, type });
-    // return presigned url
+    const second = 1;
+    const expiry = 30 * second;
     const presignedURL = await getPresignedURL(
       createObjectName({ id: video.id, videoType: video.type }),
-      type
+      type,
+      expiry
     );
 
     return res
@@ -160,30 +162,4 @@ function createObjectName({ id, videoType }: ObjectNameParams): string {
   const timeNow = getUnixTimeStamp();
 
   return `videos/${id}_${timeNow}.${extension}`;
-}
-
-async function getPresignedURL(
-  objectName: string,
-  contentType: string
-): Promise<string> {
-  const minioClient = new Minio.Client({
-    endPoint: "localhost",
-    port: 9000,
-    useSSL: false,
-    accessKey: "pranoto_access_key",
-    secretKey: "pranoto_secret_key",
-  });
-
-  const BUCKET_NAME = "pranoto-bucket";
-  const second = 1;
-  const expiry = 30 * second;
-  const presignedURL = await minioClient.presignedUrl(
-    "PUT",
-    BUCKET_NAME,
-    objectName,
-    expiry,
-    { "x-amz-acl": "public-read", "content-type": contentType }
-  );
-
-  return presignedURL;
 }

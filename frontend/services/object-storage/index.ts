@@ -1,12 +1,14 @@
 import * as Minio from "minio";
 import { config } from "../../config";
 
-const { accessKey, bucketName, host, port, secretKey } = config.objectStorage;
+const { accessKey, bucketName, host, port, secretKey, useSSL } =
+  config.objectStorage;
 const minioClient = new Minio.Client({
   endPoint: host,
-  port: Number(port),
+  port: port,
   accessKey: accessKey,
   secretKey: secretKey,
+  useSSL,
 });
 
 type DownloadFileParams = {
@@ -32,4 +34,20 @@ export async function uploadFile({
   objectStorageName,
 }: UploadFileParams) {
   await minioClient.fPutObject(bucketName, objectStorageName, targetFSPath);
+}
+
+export async function getPresignedURL(
+  objectName: string,
+  contentType: string,
+  expiry: number
+): Promise<string> {
+  const presignedURL = await minioClient.presignedUrl(
+    "PUT",
+    bucketName,
+    objectName,
+    expiry,
+    { "x-amz-acl": "public-read", "content-type": contentType }
+  );
+
+  return presignedURL;
 }
