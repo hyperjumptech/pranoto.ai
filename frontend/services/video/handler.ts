@@ -7,6 +7,7 @@ import { publishVideoUploaded } from "@/events/publishers/video";
 import { getObjectStorageNameFrom } from "@/pkg/object-storage";
 import { getUnixTimeStamp } from "@/pkg/time";
 import { find, getVideos, insert, update } from "./repository";
+import { config } from '../../config/config'
 
 type BaseResponse = {
   message: string;
@@ -163,14 +164,14 @@ async function getPresignedURL(
   contentType: string
 ): Promise<string> {
   const minioClient = new Minio.Client({
-    endPoint: "localhost",
-    port: 9000,
-    useSSL: false,
-    accessKey: "pranoto_access_key",
-    secretKey: "pranoto_secret_key",
+    endPoint: config.storage.host,
+    port: Number(config.storage.port),
+    useSSL: Boolean(config.storage.useSSL),
+    accessKey: config.storage.accessKey, 
+    secretKey: config.storage.secretKey,
   });
 
-  const BUCKET_NAME = "pranoto-bucket";
+  const BUCKET_NAME = config.storage.bucketName;
   const second = 1;
   const expiry = 30 * second;
   const presignedURL = await minioClient.presignedUrl(
