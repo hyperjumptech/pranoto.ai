@@ -107,3 +107,19 @@ export async function updateWithSegments(
     where: { id },
   });
 }
+
+export async function getSegmentsBy(
+  videoId: string,
+  { search }: GetVideoParams
+): Promise<Segment[]> {
+  const query: Prisma.SegmentFindManyArgs | undefined = search
+    ? {
+        where: {
+          videoId,
+          text: { search: parsewordsToFTSQueryOperator(search) },
+        },
+      }
+    : { where: { videoId } };
+
+  return await prisma.segment.findMany(query);
+}

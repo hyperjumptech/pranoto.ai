@@ -9,6 +9,7 @@ import {
   Form,
   Input,
   Layout,
+  List,
   Modal,
   Row,
   Skeleton,
@@ -20,11 +21,15 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import useSWR from "swr";
-import { formatDistanceToNow, fromUnixTime } from "date-fns";
+import {
+  formatDistanceToNow,
+  fromUnixTime,
+  intervalToDuration,
+} from "date-fns";
 import { object, string } from "yup";
 import axios from "axios";
 import { RcFile } from "antd/es/upload";
-import { type Video, VideoStatus } from "@prisma/client";
+import { type Video, VideoStatus, Segment } from "@prisma/client";
 import { axiosInstance, fetcher } from "@/pkg/fetcher";
 
 const { Meta } = Card;
@@ -75,7 +80,12 @@ export default function Home() {
         </Header>
         <Content style={{ padding: "1.5rem 3rem" }}>
           <Title level={1}>Videos</Title>
-          <VideoList error={error} isLoading={isLoading} videos={data?.data} />
+          <VideoList
+            error={error}
+            isLoading={isLoading}
+            searchQuery={search}
+            videos={data?.data}
+          />
           <Modal
             title="Add a video"
             open={isModalOpen}
@@ -256,15 +266,22 @@ function AddVideoForm({ onSuccess }: AddVideoFormProps) {
 type VideoListProps = {
   error: string;
   isLoading: boolean;
+  searchQuery: string;
   videos: Video[];
 };
 
-function VideoList({ error, isLoading, videos }: VideoListProps) {
+function VideoList({ error, isLoading, searchQuery, videos }: VideoListProps) {
+  const [_videoCurrentTimeSeconds, setVideoCurrentTimeSeconds] =
+    useState<number>(0);
+  const handleSeekTo = (seekPositionSeconds: number) => {
+    setVideoCurrentTimeSeconds(seekPositionSeconds);
+  };
+
   if (error) {
     return (
       <Alert
         message="Error!"
-        description=" Failed to get video data. Please try again."
+        description="Failed to get video data. Please try again."
         type="error"
       />
     );
@@ -311,6 +328,13 @@ function VideoList({ error, isLoading, videos }: VideoListProps) {
                 </Space>
               }
             />
+            {searchQuery && (
+              <SearchResult
+                videoId={id}
+                searchQuery={searchQuery}
+                onSeeked={handleSeekTo}
+              />
+            )}
           </Card>
         </Col>
       ))}
@@ -332,4 +356,92 @@ function getStatusColor(videoStatus: VideoStatus): string {
 
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+type SearchResultProps = {
+  videoId: string;
+  searchQuery: string;
+  onSeeked: (seekPositionSeconds: number) => void;
+};
+
+function SearchResult({ videoId, searchQuery, onSeeked }: SearchResultProps) {
+  const { data, error, isLoading, mutate } = useSWR(
+    `/v1/videos/${videoId}/segments?q=${searchQuery}`,
+    fetcher
+  );
+
+  if (error) {
+    return (
+      <Alert
+        style={{ marginTop: "0.5rem" }}
+        message="Error!"
+        type="error"
+        description="Failed to get video position."
+        action={<Button onClick={() => mutate()}>Reload</Button>}
+      />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div style={{ marginTop: "0.5rem" }}>
+        <Skeleton paragraph={false} loading active />
+        <Skeleton paragraph={false} loading active />
+        <Skeleton paragraph={false} loading active />
+      </div>
+    );
+  }
+
+  return (
+    <List
+      bordered
+      dataSource={data.data}
+      renderItem={({ start, text }: Segment) => (
+        <List.Item
+          onClick={() => onSeeked(start)}
+          style={{ cursor: "pointer" }}
+        >
+          <Typography.Text>{humanReadableSeekPosition(start)}</Typography.Text>{" "}
+          <Typography.Text style={{ marginLeft: "0.5rem", color: "#1677ff" }}>
+            {text}
+          </Typography.Text>
+        </List.Item>
+      )}
+      style={{ marginTop: "0.5rem" }}
+    />
+  );
+}
+
+function humanReadableSeekPosition(seek: number): string {
+  const { days, hours, minutes, months, seconds, weeks, years } =
+    intervalToDuration({ start: 0, end: seek * 1000 });
+  const sortedUnits = [
+    seconds,
+    minutes,
+    hours,
+    days,
+    months,
+    weeks,
+    years,
+  ].filter(Boolean);
+  const isSecondOnly = sortedUnits.length === 1;
+  const addZeroPrefix = (num: number): string => {
+    if (num > 0 && num < 10) {
+      return `0${num}`;
+    }
+
+    return `${num}`;
+  };
+  const seekPosition = sortedUnits.reduce((acc, curr, index) => {
+    const validUnit = addZeroPrefix(curr || 0);
+    const isFirstIndex = index === 0;
+
+    if (isFirstIndex) {
+      return `${validUnit}`;
+    }
+
+    return `${validUnit}:${acc}`;
+  }, "");
+
+  return isSecondOnly ? `00:${seekPosition}` : seekPosition;
 }

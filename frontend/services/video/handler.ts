@@ -1,12 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { type ValidationError, object, string } from "yup";
 import mime from "mime-types";
-import type { Video } from "@prisma/client";
+import type { Segment, Video } from "@prisma/client";
 import { config } from "@/config";
 import { publishVideoUploaded } from "@/events/publishers/video";
 import { getObjectStorageNameFrom } from "@/pkg/object-storage";
 import { getUnixTimeStamp } from "@/pkg/time";
-import { find, getVideos, insert, update } from "./repository";
+import { find, getSegmentsBy, getVideos, insert, update } from "./repository";
 import { getPresignedURL } from "../object-storage";
 
 type BaseResponse = {
@@ -162,4 +162,31 @@ function createObjectName({ id, videoType }: ObjectNameParams): string {
   const timeNow = getUnixTimeStamp();
 
   return `videos/${id}_${timeNow}.${extension}`;
+}
+
+type SegmentListResponse = BaseResponse & {
+  data?: Segment[];
+};
+
+export async function indexSegment(
+  { query }: NextApiRequest,
+  res: NextApiResponse<SegmentListResponse>
+) {
+  try {
+    const segments = await getSegmentsBy(query?.id as string, {
+      search: parseSearchQueryString(query?.q),
+    });
+
+    return res.status(200).json({
+      message: "OK",
+      data: segments,
+    });
+  } catch (error: any) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Failed to get videos.",
+      error: error?.message,
+    });
+  }
 }
