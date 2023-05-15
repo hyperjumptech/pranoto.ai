@@ -118,8 +118,9 @@ export async function getSegmentsBy(
           videoId,
           text: { search: parsewordsToFTSQueryOperator(search) },
         },
+        orderBy: { start: "asc" },
       }
-    : { where: { videoId } };
+    : { where: { videoId }, orderBy: { start: "asc" } };
 
   return await prisma.segment.findMany(query);
 }

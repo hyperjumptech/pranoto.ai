@@ -1,4 +1,4 @@
-import { type KeyboardEventHandler, useState } from "react";
+import { type KeyboardEventHandler, useState, useEffect } from "react";
 import Head from "next/head";
 import {
   Alert,
@@ -271,12 +271,6 @@ type VideoListProps = {
 };
 
 function VideoList({ error, isLoading, searchQuery, videos }: VideoListProps) {
-  const [_videoCurrentTimeSeconds, setVideoCurrentTimeSeconds] =
-    useState<number>(0);
-  const handleSeekTo = (seekPositionSeconds: number) => {
-    setVideoCurrentTimeSeconds(seekPositionSeconds);
-  };
-
   if (error) {
     return (
       <Alert
@@ -307,38 +301,72 @@ function VideoList({ error, isLoading, searchQuery, videos }: VideoListProps) {
 
   return (
     <Row gutter={[24, 24]}>
-      {videos.map(({ createdAt, id, status, title, type, url }) => (
-        <Col key={id} span={8}>
-          <Card>
-            <video controls style={{ width: "100%", paddingBottom: "0.5rem" }}>
-              <source src={url} type={type} />
-            </video>
-            <Meta
-              title={title}
-              description={
-                <Space>
-                  {formatDistanceToNow(fromUnixTime(createdAt), {
-                    addSuffix: true,
-                  })}
-                  {status !== VideoStatus.TRANSCRIBED && (
-                    <Tag color={getStatusColor(status)}>
-                      {capitalize(status)}
-                    </Tag>
-                  )}
-                </Space>
-              }
-            />
-            {searchQuery && (
-              <SearchResult
-                videoId={id}
-                searchQuery={searchQuery}
-                onSeeked={handleSeekTo}
-              />
-            )}
-          </Card>
+      {videos.map((video) => (
+        <Col key={video.id} span={8}>
+          <VideoCard video={video} searchQuery={searchQuery} />
         </Col>
       ))}
     </Row>
+  );
+}
+
+type VideoCardProps = {
+  video: Video;
+  searchQuery: string;
+};
+
+function VideoCard({
+  video: { createdAt, id, status, title, type, url },
+  searchQuery,
+}: VideoCardProps) {
+  const { data, error, isLoading, mutate } = useSWR(
+    searchQuery ? `/v1/videos/${id}/segments?q=${searchQuery}` : undefined,
+    fetcher
+  );
+  const [videoCurrentTimeSeconds, setVideoCurrentTimeSeconds] =
+    useState<number>(0);
+  const videoStartTime = data?.data?.[0]?.start;
+  const videoUrl = `${url}#t=${videoCurrentTimeSeconds}`;
+  const handleSeekTo = (seekPositionSeconds: number) => {
+    setVideoCurrentTimeSeconds(seekPositionSeconds);
+  };
+
+  useEffect(() => {
+    setVideoCurrentTimeSeconds(videoStartTime);
+  }, [videoStartTime]);
+
+  return (
+    <Card>
+      <video
+        key={videoUrl}
+        controls
+        style={{ width: "100%", paddingBottom: "0.5rem" }}
+      >
+        <source src={videoUrl} type={type} />
+      </video>
+      <Meta
+        title={title}
+        description={
+          <Space>
+            {formatDistanceToNow(fromUnixTime(createdAt), {
+              addSuffix: true,
+            })}
+            {status !== VideoStatus.TRANSCRIBED && (
+              <Tag color={getStatusColor(status)}>{capitalize(status)}</Tag>
+            )}
+          </Space>
+        }
+      />
+      {searchQuery && (
+        <SearchResult
+          error={error}
+          isLoading={isLoading}
+          mutate={mutate}
+          segments={data?.data}
+          onSeeked={handleSeekTo}
+        />
+      )}
+    </Card>
   );
 }
 
@@ -359,21 +387,24 @@ function capitalize(str: string): string {
 }
 
 type SearchResultProps = {
-  videoId: string;
-  searchQuery: string;
+  error: any;
+  isLoading: boolean;
+  mutate: () => void;
+  segments: Segment[];
   onSeeked: (seekPositionSeconds: number) => void;
 };
 
-function SearchResult({ videoId, searchQuery, onSeeked }: SearchResultProps) {
-  const { data, error, isLoading, mutate } = useSWR(
-    `/v1/videos/${videoId}/segments?q=${searchQuery}`,
-    fetcher
-  );
-
+function SearchResult({
+  error,
+  isLoading,
+  mutate,
+  segments,
+  onSeeked,
+}: SearchResultProps) {
   if (error) {
     return (
       <Alert
-        style={{ marginTop: "0.5rem" }}
+        style={{ marginTop: "0.75rem" }}
         message="Error!"
         type="error"
         description="Failed to get video position."
@@ -384,7 +415,7 @@ function SearchResult({ videoId, searchQuery, onSeeked }: SearchResultProps) {
 
   if (isLoading) {
     return (
-      <div style={{ marginTop: "0.5rem" }}>
+      <div style={{ marginTop: "0.75rem" }}>
         <Skeleton paragraph={false} loading active />
         <Skeleton paragraph={false} loading active />
         <Skeleton paragraph={false} loading active />
@@ -395,8 +426,8 @@ function SearchResult({ videoId, searchQuery, onSeeked }: SearchResultProps) {
   return (
     <List
       bordered
-      dataSource={data.data}
-      renderItem={({ start, text }: Segment) => (
+      dataSource={segments}
+      renderItem={({ start, text }) => (
         <List.Item
           onClick={() => onSeeked(start)}
           style={{ cursor: "pointer" }}
@@ -407,7 +438,7 @@ function SearchResult({ videoId, searchQuery, onSeeked }: SearchResultProps) {
           </Typography.Text>
         </List.Item>
       )}
-      style={{ marginTop: "0.5rem" }}
+      style={{ marginTop: "0.75rem" }}
     />
   );
 }
@@ -424,6 +455,11 @@ function humanReadableSeekPosition(seek: number): string {
     weeks,
     years,
   ].filter(Boolean);
+
+  if (sortedUnits.length === 0) {
+    return "00:00";
+  }
+
   const isSecondOnly = sortedUnits.length === 1;
   const addZeroPrefix = (num: number): string => {
     if (num > 0 && num < 10) {
