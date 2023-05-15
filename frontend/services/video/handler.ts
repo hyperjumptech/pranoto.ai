@@ -171,7 +171,7 @@ async function getPresignedURL(
     secretKey: config.storage.secretKey,
   });
 
-  const BUCKET_NAME = "pranoto-bucket";
+  const BUCKET_NAME = config.storage.bucketName;
   const second = 1;
   const expiry = 30 * second;
   const presignedURL = await minioClient.presignedUrl(
