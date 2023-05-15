@@ -1,5 +1,10 @@
 import { nanoid } from "nanoid";
-import { Prisma, PrismaClient, VideoStatus } from "@prisma/client";
+import {
+  Prisma,
+  PrismaClient,
+  type Segment,
+  VideoStatus,
+} from "@prisma/client";
 import type { Video } from "@prisma/client";
 import { getUnixTimeStamp } from "@/pkg/time";
 
@@ -56,16 +61,14 @@ export async function insert({
 export async function update(
   id: string,
   {
-    segments,
     status,
     text,
     title,
     url,
-  }: Partial<Pick<Video, "segments", "status" | "title" | "text" | "url">>
+  }: Partial<Pick<Video, "status" | "title" | "text" | "url">>
 ): Promise<Video> {
   const video = {
     updatedAt: getUnixTimeStamp(),
-    segments,
     status,
     text,
     title,
@@ -74,6 +77,32 @@ export async function update(
 
   return await prisma.video.update({
     data: video,
+    where: { id },
+  });
+}
+
+export async function updateWithSegments(
+  id: string,
+  { status, text }: Partial<Pick<Video, "status" | "text">>,
+  segments: Pick<Segment, "end" | "seek" | "start" | "text">[]
+): Promise<Video> {
+  const video = {
+    updatedAt: getUnixTimeStamp(),
+    status,
+    text,
+  };
+  const segmentData = segments.map(({ end, seek, start, text }) => ({
+    id: nanoid(),
+    end,
+    seek,
+    start,
+    text,
+    updatedAt: getUnixTimeStamp(),
+    createdAt: getUnixTimeStamp(),
+  }));
+
+  return await prisma.video.update({
+    data: { ...video, segments: { createMany: { data: segmentData } } },
     where: { id },
   });
 }

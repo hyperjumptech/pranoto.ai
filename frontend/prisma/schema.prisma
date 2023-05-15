@@ -18,7 +18,7 @@ model Video {
   url       String
   type      String
   text      String
-  segments  Json[]
+  segments  Segment[]
   createdAt Int
   updatedAt Int
 
@@ -31,4 +31,19 @@ enum VideoStatus {
   CONVERTED
   TRANSCRIBING
   TRANSCRIBED
+}
+
+model Segment {
+  id        String @id
+  seek      Int
+  start     Float
+  end       Float
+  text      String
+  createdAt Int
+  updatedAt Int
+
+  video   Video  @relation(fields: [videoId], references: [id])
+  videoId String
+
+  @@index([text])
 }

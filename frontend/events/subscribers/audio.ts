@@ -2,7 +2,7 @@ import { exec } from "node:child_process";
 import fs from "node:fs/promises";
 import { promisify } from "node:util";
 import { downloadFile, uploadFile } from "@/services/object-storage";
-import { update } from "@/services/video/repository";
+import { update, updateWithSegments } from "@/services/video/repository";
 import { VideoStatus } from "@prisma/client";
 
 const execPromisify = promisify(exec);
@@ -71,6 +71,19 @@ async function transcribeAudio({
   await execPromisify(cmd);
 }
 
+export type WhisperSegment = {
+  id: number;
+  seek: number;
+  start: number;
+  end: number;
+  text: string;
+  tokens: number[];
+  temperature: number;
+  avg_logprob: number;
+  compression_ratio: number;
+  no_speech_prob: number;
+};
+
 type StoreTranscription = {
   id: string;
   transcriptionFSPath: string;
@@ -81,6 +94,19 @@ async function storeTranscription({
   transcriptionFSPath,
 }: StoreTranscription) {
   const transcription = await fs.readFile(transcriptionFSPath, "utf8");
-  const { segments, text } = JSON.parse(transcription);
-  await update(id, { segments, status: VideoStatus.TRANSCRIBED, text });
+  const { segments, text }: { segments: WhisperSegment[]; text: string } =
+    JSON.parse(transcription);
+  await updateWithSegments(
+    id,
+    {
+      status: VideoStatus.TRANSCRIBED,
+      text,
+    },
+    segments.map(({ seek, start, end, text }) => ({
+      seek,
+      start,
+      end,
+      text,
+    }))
+  );
 }

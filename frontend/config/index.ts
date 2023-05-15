@@ -32,7 +32,7 @@ export const config: Config = {
   db: {
     uri:
       process.env.DATABASE_URL ||
-      "postgresql://pranoto_user:pranoto_password@localhost:5432/pranoto_db??schema=public&tcpKeepAlive=true",
+      "postgresql://pranoto_user:pranoto_password@localhost:5432/pranoto_db?schema=public&tcpKeepAlive=true",
   },
   messaging: {
     host: process.env.MESSAGING_HOST || "localhost",
